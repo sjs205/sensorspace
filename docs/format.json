@@ -1,0 +1,26 @@
+{
+  "reading" : {
+    "date" : "2015-03-28 00:00:00",
+
+      "device" :
+      {
+        "id"   : "9",
+        "name" : "Fowsr Weater Station"
+      },
+
+      "sensors" : [
+
+      {
+        "id" : "2",
+        "meas" : "5",
+        "name" : "Outside Temp"
+      },
+
+      {
+        "id" : "2",
+        "meas" : "21",
+        "name" : "Inside Temp"
+      }
+      ]
+  }
+}

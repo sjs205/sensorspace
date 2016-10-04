@@ -1,0 +1,3 @@
+[submodule "src/uMQTT"]
+	path = src/uMQTT
+	url = https://github.com/sjs205/uMQTT
