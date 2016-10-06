@@ -62,6 +62,7 @@ static int print_usage() {
       " -m [--measure]           : Measurement to send as part of the reading.\n"
       "                            Can be used multiple times.\n"
       " -s [--sensor_id] <id>    : The sensor_id of the previous measurement.\n"
+      " -s [--name] <name>       : The sensor/measurement name.\n"
       " -j [--json]              : Embed the reading in JSON format (DEFAULT)\n"
       " -i [--ini]               : Embed the reading in INI format\n"
       "                            NOTE: Not currently supported\n"
@@ -120,8 +121,9 @@ int main(int argc, char **argv) {
     /* These options set a flag. */
     {"help",   no_argument,             0, 'h'},
     {"measure", required_argument,      0, 'm'},
-    {"sensor_id", required_argument,     0, 's'},
-    {"device_id", required_argument,     0, 'd'},
+    {"sensor_id", required_argument,    0, 's'},
+    {"device_id", required_argument,    0, 'n'},
+    {"name", required_argument,         0, 'd'},
     {"date", required_argument,         0, 'D'},
     {"json", no_argument,               0, 'j'},
     {"ini", no_argument,                0, 'i'},
@@ -137,7 +139,7 @@ int main(int argc, char **argv) {
   /* get arguments */
   while (1)
   {
-    if ((c = getopt_long(argc, argv, "hv:s:d:D:jirt:m:b:p:c:", long_options,
+    if ((c = getopt_long(argc, argv, "hv:s:n:d:D:jirt:m:b:p:c:", long_options,
             &option_index)) != -1) {
 
       switch (c) {
@@ -204,6 +206,17 @@ int main(int argc, char **argv) {
           } else {
             log_stderr(LOG_ERROR,
                 "The measurement flag should be followed by a measurement");
+            return print_usage();
+          }
+          break;
+
+        case 'n':
+          /* set sensor/measurement name */
+          if (optarg) {
+            strcpy(r->meas[r->count - 1]->name, optarg);
+          } else {
+            log_stderr(LOG_ERROR,
+                "The name flag should be followed by a string");
             return print_usage();
           }
           break;
