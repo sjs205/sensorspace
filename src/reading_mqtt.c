@@ -23,6 +23,7 @@
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <signal.h>
 
@@ -35,7 +36,7 @@
 #include "reading.h"
 #include "log.h"
 
-#define MQTT_DEFAULT_TOPIC    "sensorspace/readings/"
+#define MQTT_DEFAULT_TOPIC    "sensorspace/reading"
 
 #define MAX_TOPIC_LEN 1024
 #define MAX_MSG_LEN 2048
@@ -56,20 +57,25 @@ static int print_usage() {
       " -h [--help]              : Displays this help and exits\n"
       "\n"
       "Reading options:\n"
-      " -D [--date]              : The reading date if not NOW.\n"
+      " -D [--date] <date>       : The reading date if not NOW.\n"
       "                            Format: '%%Y-%%m-%%d %%H:%%M:%%S'\n"
-      " -d [--device_id] <id>    : The device_id the reading is attached to.\n"
-      " -m [--measure]           : Measurement to send as part of the reading.\n"
+      " -d [--device-id] <id>    : The device_id the reading is attached to.\n"
+      " -N [--device-name] <name>: The device_id the reading is attached to.\n"
+      " -m [--meas] <measurement>: Measurement to sent as part of the reading.\n"
       "                            Can be used multiple times.\n"
-      " -s [--sensor_id] <id>    : The sensor_id of the previous measurement.\n"
-      " -s [--name] <name>       : The sensor/measurement name.\n"
+      " -s [--sensor-id] <id>    : The sensor_id of the previous measurement.\n"
+      " -n [--name] <name>       : The sensor/measurement name.\n"
       " -j [--json]              : Embed the reading in JSON format (DEFAULT)\n"
       " -i [--ini]               : Embed the reading in INI format\n"
       "                            NOTE: Not currently supported\n"
       "\n"
       "Publish options:\n"
+      " -l [--location] <loc>    : Add a location topic. \n"
+      "                            Can be used multiple times.\n"
       " -t [--topic] <topic>     : Change the default topic. \n"
-      "                            Default: 'sensorspace/readings/'\n"
+      "                            Default: \n"
+      "                            'sensorspace/reading/[location]/'\n"
+      "                             [device-id]/[device-name]"
       " -r [--retain]            : Set the retain flag\n"
       "\n"
       "Broker options:\n"
@@ -97,14 +103,15 @@ int main(int argc, char **argv) {
 
   int ret;
   int c, option_index = 0;
-  char topic[MAX_TOPIC_LEN] = UMQTT_DEFAULT_TOPIC;
+  char topic[MAX_TOPIC_LEN] = MQTT_DEFAULT_TOPIC;
   char broker_ip[16] = MQTT_BROKER_IP;
+  int broker_port = MQTT_BROKER_PORT;
   size_t len = MAX_MSG_LEN;
   char msg[MAX_MSG_LEN] = "\0";
-  int broker_port = MQTT_BROKER_PORT;
   char clientid[UMQTT_CLIENTID_MAX_LEN] = "\0";
   uint8_t retain = 0;
   uint32_t repeat = 1;
+  bool topic_set = false;
 
   struct reading *r = NULL;
   ret = reading_init(&r);
@@ -121,14 +128,16 @@ int main(int argc, char **argv) {
     /* These options set a flag. */
     {"help",   no_argument,             0, 'h'},
     {"measure", required_argument,      0, 'm'},
-    {"sensor_id", required_argument,    0, 's'},
-    {"device_id", required_argument,    0, 'n'},
-    {"name", required_argument,         0, 'd'},
+    {"sensor-id", required_argument,    0, 's'},
+    {"device-id", required_argument,    0, 'd'},
+    {"device-name", required_argument,  0, 'N'},
+    {"name", required_argument,         0, 'n'},
     {"date", required_argument,         0, 'D'},
     {"json", no_argument,               0, 'j'},
     {"ini", no_argument,                0, 'i'},
     {"retain",  no_argument,            0, 'r'},
     {"verbose", required_argument,      0, 'v'},
+    {"location", required_argument,     0, 'l'},
     {"topic", required_argument,        0, 't'},
     {"broker", required_argument,       0, 'b'},
     {"port", required_argument,         0, 'p'},
@@ -139,7 +148,7 @@ int main(int argc, char **argv) {
   /* get arguments */
   while (1)
   {
-    if ((c = getopt_long(argc, argv, "hv:s:n:d:D:jirt:m:b:p:c:", long_options,
+    if ((c = getopt_long(argc, argv, "hv:s:n:N:d:D:jirt:l:m:b:p:c:", long_options,
             &option_index)) != -1) {
 
       switch (c) {
@@ -161,6 +170,7 @@ int main(int argc, char **argv) {
         case 't':
           /* Set topic */
           if (optarg) {
+            topic_set = true;
             strcpy(topic, optarg);
           } else {
             log_stderr(LOG_ERROR,
@@ -168,6 +178,23 @@ int main(int argc, char **argv) {
             return print_usage();
           }
           break;
+
+        case 'l':
+          /* Set location */
+          if (optarg) {
+            if (topic_set) {
+              log_stderr(LOG_ERROR,
+                  "Location flag are invalid when the topic flag is used");
+              return print_usage();
+            }
+            sprintf(topic, "%s/%s", topic, optarg);
+          } else {
+            log_stderr(LOG_ERROR,
+                "The topic flag should be followed by a topic");
+            return print_usage();
+          }
+          break;
+
 
         case 'D':
           /* set the reading date */
@@ -190,6 +217,18 @@ int main(int argc, char **argv) {
             return print_usage();
           }
           break;
+
+        case 'N':
+          /* set device name */
+          if (optarg) {
+            strcpy(r->name, optarg);
+          } else {
+            log_stderr(LOG_ERROR,
+                "The device name flag should be followed by a string");
+            return print_usage();
+          }
+          break;
+
 
         case 'm':
           /* set a measurement */
@@ -301,6 +340,16 @@ int main(int argc, char **argv) {
   }
 
   struct mqtt_packet *pkt = construct_packet_headers(PUBLISH);
+
+  /* build topic string */
+  if (!topic_set) {
+    if (r->device_id) {
+      sprintf(topic, "%s/%d", topic, r->device_id);
+    }
+    if (r->name) {
+      sprintf(topic, "%s/%s", topic, r->name);
+    }
+  }
 
   if (!pkt || (ret = set_publish_variable_header(pkt, topic, strlen(topic)))) {
     log_stderr(LOG_ERROR, "Setting up packet");

@@ -32,27 +32,21 @@ int convert_reading_json(struct reading *r, char *buf, size_t *len) {
   ssize_t l = 0;
 
   l = snprintf(buf, *len,
-      "{\"reading\":{\"date\":\"%02d-%02d-%02d %02d:%02d:%02d\",",
+      "{\"date\":\"%02d-%02d-%02d %02d:%02d:%02d\",",
       r->t.tm_year + 1900, r->t.tm_mon + 1, r->t.tm_mday, r->t.tm_hour,
       r->t.tm_min, r->t.tm_sec);
-  if (l < 0) {
-    goto error;
-  }
+  if (l < 0) goto error;
 
   /* Set device_id */
   if (r->device_id) {
     l += snprintf(buf + l, *len - l, "\"device\":{\"id\":\"%d\"},",
         r->device_id);
-    if (l < 0) {
-      goto error;
-    }
+    if (l < 0) goto error;
   }
 
   /* Set measurements */
   l += snprintf(buf + l, *len - l, "\"sensors\":[");
-  if (l < 0) {
-    goto error;
-  }
+  if (l < 0) goto error;
 
   if (r->count) {
 
@@ -62,17 +56,29 @@ int convert_reading_json(struct reading *r, char *buf, size_t *len) {
         *(buf + l++) = ',';
       }
 
-      l += snprintf(buf + l, *len - l, "{\"id\":\"%d\",\"meas\":\"%s\""
-          ",\"name\":\"%s\"}",
-          r->meas[i]->sensor_id, r->meas[i]->meas, r->meas[i]->name);
-      if (l < 0) {
-        goto error;
+      l += snprintf(buf + l, *len - l, "{");
+      if (r->meas[i]->sensor_id) {
+        /* assumes measurment always present, hence comma */
+        l += snprintf(buf + l, *len - l, "\"id\":\"%d\",",
+            r->meas[i]->sensor_id);
+        if (l < 0) goto error;
+      }
+
+      if (r->meas[i]->meas) {
+        l += snprintf(buf + l, *len - l, "\"meas\":\"%s\"", r->meas[i]->meas);
+        if (l < 0) goto error;
+      }
+
+      if (r->meas[i]->name[0]) {
+        /* assumes measurment always present, hence comma */
+        l += snprintf(buf + l, *len - l, ",\"name\":\"%s\"", r->meas[i]->name);
+        if (l < 0) goto error;
       }
     }
   }
 
   /* finish and close */
-  l += snprintf(buf + l, *len - l, "]}}");
+  l += snprintf(buf + l, *len - l, "]}");
   *len = l + 1;
 
   return SS_SUCCESS;
