@@ -1,6 +1,6 @@
 # sensorspace
 
-sensorspace is a set of tools/applicaitons that provide integration between different sensors and platforms with a view to providing a complete "sensorspace".
+sensorspace is a set of tools/applications that provide integration between different sensors and platforms with a view to providing a complete "sensorspace".
 
 sensorspace is a new project so current sensor support is limited, however, it provides the framework with which a complete sensorspace can be constructed.
 
@@ -12,7 +12,7 @@ Further information can be found at https://sensorspace.org.
 A server that allows the user to provide manual - or scripted - sensor readings via the command line, and send these readings directly to an MQTT broker as a PUBLISH packet.
 
 ### tty_mqtt
-A server that fowards sensor data transmitted over a serial link, to an MQTT broker, as a PUBLISH message. The sensor data can be encapsulated in JSON, ini, format, or transmitted raw.
+A server that forwards sensor data transmitted over a serial link, to an MQTT broker, as a PUBLISH message. The sensor data can be encapsulated in JSON, ini, format, or transmitted raw.
 
 For the sensor data to be encapsulated in JSON, or ini, the raw sensor data from a given device needs to be decoded. With this in mind, some "glue" is required to enable this support, however, adding new devices should be trivial. Currently supported sensor devices:
 
@@ -30,8 +30,8 @@ The ultimate goal for the sensorspace project is to provide a complete set of to
 * MQTT alert application - To alert the users of changes to sensor data.
 
 ### Readings
-A reading is simply a set of measurements from a given device or sensor, and have the following structure illistraited with JSON:
-'''
+A reading is simply a set of measurements from a given device or sensor. Readings have the following structure:
+```
 {
   "date" : "2015-03-28 00:00:00",
 
@@ -55,34 +55,49 @@ A reading is simply a set of measurements from a given device or sensor, and hav
     }
     ]
 }
-'''
+```
 
 The "device" object is optional, but the inclusion of such data facilitates better reporting in dumb clients. The same is true for the "name" and "id" fields.
 
 ### MQTT support
+
 sensorspace users the uMQTT library to provide MQTT support, further information on uMQTT can be found on the github page: https://github/sjs205/uMQTT.
 
 ### Defined MQTT Topics
-The sensorspace project defines the MQTT topics:
 
-* $SENSORSPACE/error/device/<device_id>/<device_name>
- * Device based error reporting
+The sensorspace project defines the following MQTT topics:
 
-* sensorspace/reading/[+location+]/<device_id>/<device_name>
- * Readings from a device
+#### Device based error reporting:
 
-#### To be implemented
+`$SENSORSPACE/error/device/<device-name>/[device-id]`
 
-* sensorspace/device/<device_id>/<device_name>
-* sensorspace/sensor/<sensor-id>/<sensor-name>
- * Device and sensor information.
- * Where possible, this information should be published by individual sensors, devices.
 
-* sensorspace/<measurement-type>/[+location+]/<sensor-id>/<sensor-name>
- * Single sensor measurement
+#### Readings from a device:
 
-* sensorspace/calc/<calc-type>/<measurement-type>/<sensor-id>/<sensor-name>
- * Calculation for a sensor or device
+`sensorspace/reading/<device-name>/[device-id]`
 
-* sensorspace/hist/
- * Historic data. Topic structure TBD
+
+#### Device and sensor information:
+
+`sensorspace/device/<device-name>/[device-id]`
+
+`sensorspace/sensor/<sensor-name>/[sensor-id]`
+
+Where possible, this information should be published by individual sensors, devices.
+
+
+#### Single sensor measurements:
+
+`sensorspace/<measurement-type>/[location]/../[location]/<sensor-name>/[sensor-id]`
+
+
+#### Calculation for a sensor or device:
+
+`sensorspace/calc/<calc-type>/<measurement-type>/<sensor-name>/[sensor-id]`
+
+
+#### Historic data:
+
+`sensorspace/hist/*`
+
+Topic structure TBD
