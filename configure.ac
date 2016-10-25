@@ -21,9 +21,11 @@ AC_ARG_ENABLE(debug,
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
 # Checks for header files.
-AC_CHECK_HEADERS([signal.h fcntl.h stdint.h stdlib.h])
-AC_CHECK_HEADERS([string.h sys/ioctl.h sys/socket.h sys/types.h unistd.h])
-AC_CHECK_HEADERS([sys/stat.h termio.h sys/time.h])
-AC_CHECK_HEADERS([assert.h errno.h ])
+AC_CHECK_HEADERS([signal.h fcntl.h stdint.h stdlib.h], break)
+AC_CHECK_HEADERS([string.h sys/ioctl.h sys/socket.h sys/types.h unistd.h], break)
+AC_CHECK_HEADERS([sys/stat.h termio.h sys/time.h], break)
+AC_CHECK_HEADERS([assert.h errno.h ], break)
+AC_CHECK_HEADER([rrd.h], [rrdtool=true])
+AM_CONDITIONAL(RRD_H, test x"$rrdtool" = x"true")
 
 AC_OUTPUT(Makefile src/Makefile src/reading/Makefile src/serial/Makefile)

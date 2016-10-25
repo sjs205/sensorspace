@@ -49,8 +49,15 @@ AM_LDFLAGS = libreading.a \
 lib_LIBRARIES = libreading.a libserial.a
 
 libreading_a_SOURCES = reading/reading.c reading/reading_ini.c \
-                        reading/reading_json.c reading/reading_cc_dev.c log.c
+                        reading/reading_json.c reading/reading_cc_dev.c \
+                        $(RRDTOOL) log.c
+
+if RRD_H
+RRDTOOL = reading/reading_rrdtool.c
+endif
+
 libserial_a_SOURCES = serial/tty_conn.c log.c
+
 
 bin_PROGRAMS = tty_mqtt reading_mqtt
 
