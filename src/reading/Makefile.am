@@ -33,4 +33,9 @@ endif
 
 lib_LIBRARIES = libreading.a
 
-libreading_a_SOURCES = reading.c reading_ini.c reading_json.c reading_cc_dev.c
+libreading_a_SOURCES = reading.c reading_ini.c reading_json.c reading_cc_dev.c \
+                        $(RRDTOOL)
+
+if RRD_H
+RRDTOOL = reading_rrdtool.c
+endif
