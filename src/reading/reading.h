@@ -29,17 +29,14 @@
 #include "sensorspace.h"
 #include "log.h"
 
+#define MAX_FILENAME_LEN        1024
 #define READ_MEAS_LEN           32
 #define READ_NAME_LEN           128
 #define READ_MEAS_COUNT         64
 
-typedef enum {
-  READ_NONE,
-
-  READ_RAW,
-  READ_INI,
-  READ_JSON,
-} read_format_t;
+/* ~11 for epoch chars */
+#define RRD_MEASUREMENT_LEN     READ_MEAS_LEN + 11
+#define RRD_MAX_SENSORS         32
 
 /*
  * \brief Enum to hold measurement types supported by sensorspace
@@ -88,6 +85,24 @@ struct measurement {
   char meas[READ_MEAS_LEN];
 };
 
+/*
+ * \brief Struct to hold an rrd database file and path
+ * \param name The rrd file name and path
+ */
+struct rrd_file {
+  char name[MAX_FILENAME_LEN];
+};
+
+/*
+ * \brief Struct to hold an rrd database context
+ * \param file The rrd file struct
+ */
+struct rrdtool {
+  unsigned sensor_id[RRD_MAX_SENSORS];
+  struct rrd_file *file[RRD_MAX_SENSORS];
+  unsigned f_count;
+};
+
 /* core library functions */
 int reading_init(struct reading **r_p);
 int measurement_init(struct reading *r);
@@ -113,5 +128,11 @@ int convert_cc_dev_reading(struct reading *r, char *buf, size_t len);
 
 /* helper functions */
 int json_get_key_value(const char *buf, const char *key, char *val);
+
+/* reading endpoint functions */
+int rrd_file_init(struct rrdtool *rrd, char *file);
+int add_reading_rrd(struct reading *r, struct rrdtool *rrd);
+void free_rrd_file(struct rrd_file *file);
+void free_rrd_files(struct rrdtool *rrd);
 
 #endif        /* READING__H */
