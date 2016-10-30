@@ -35,14 +35,15 @@
  * \brief function to initialise a new RRD file.
  */
 int rrd_file_init(struct rrdtool *rrd, char *file) {
+  log_stderr(LOG_ERROR, "irrdfile init");
 
-  if (rrd->f_count + 1 >= RRD_MAX_SENSORS) {
+  if (rrd->f_count + 1 <= RRD_MAX_SENSORS) {
     if (!(rrd->file[rrd->f_count++] = calloc(1, sizeof(struct rrd_file)))) {
       log_stderr(LOG_ERROR, "RRDtool: Out of memory");
       goto free;
     }
   } else {
-    log_stderr(LOG_ERROR, "RRDtool: Exceded max number of files: %s",
+    log_stderr(LOG_ERROR, "RRDtool: Exceded max number of files: %d",
         RRD_MAX_SENSORS);
     return SS_OUT_OF_MEM_ERROR;
   }
@@ -72,9 +73,18 @@ static int add_measurement_rrd(struct reading *r, unsigned m_idx,
     NULL
   };
 
+  log_stderr(LOG_ERROR, "This should be a debug message!!!!\nrrdtool update command:");
+  log_stderr(LOG_ERROR, "[rrdtool] %s, %s, %s, %s", updateparams[0],
+      updateparams[1],
+      updateparams[2],
+      updateparams[3]);
+
   ret = rrd_update(3, (char **)updateparams);
   if (ret) {
-    // print error message
+    log_stderr(LOG_ERROR, "RRDtool: update failed for RRD:");
+    log_stderr(LOG_ERROR, "Sensor ID: %d, Measurement: %s, File: %s",
+        file, r->meas[m_idx]->meas, r->meas[m_idx]->sensor_id);
+    ret = SS_POST_ERROR;
   }
 
   return ret;

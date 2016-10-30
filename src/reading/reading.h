@@ -125,7 +125,7 @@ int convert_cc_dev_reading(struct reading *r, char *buf, size_t len);
 /* helper functions */
 int json_get_key_value(const char *buf, const char *key, char *val);
 
-/* reading endpoint functions */
+/* RRDtool endpoint functions */
 int rrd_file_init(struct rrdtool *rrd, char *file);
 int add_reading_rrd(struct reading *r, struct rrdtool *rrd);
 void free_rrd_file(struct rrd_file *file);
