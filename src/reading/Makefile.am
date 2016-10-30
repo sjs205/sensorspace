@@ -31,6 +31,10 @@ AM_CFLAGS = -Wall \
             -I..
 endif
 
+if RRD_H
+AM_LDFLAGS = -lrrd
+endif
+
 lib_LIBRARIES = libreading.a
 
 libreading_a_SOURCES = reading.c reading_ini.c reading_json.c reading_cc_dev.c \

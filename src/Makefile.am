@@ -47,17 +47,18 @@ AM_LDFLAGS = libreading.a \
              -luMQTT_client \
              -luMQTT_linux_client \
              -luMQTT_helper \
-             -luMQTT
+             -luMQTT \
+             -lrrd
 
 lib_LIBRARIES = libreading.a libserial.a libcontroller.a
-
-libreading_a_SOURCES = reading/reading.c reading/reading_ini.c \
-                        reading/reading_json.c reading/reading_cc_dev.c \
-                        $(RRDTOOL) log.c
 
 if RRD_H
 RRDTOOL = reading/reading_rrdtool.c
 endif
+
+libreading_a_SOURCES = reading/reading.c reading/reading_ini.c \
+                        reading/reading_json.c reading/reading_cc_dev.c \
+                        $(RRDTOOL) log.c
 
 libserial_a_SOURCES = serial/tty_conn.c log.c
 libcontroller_a_SOURCES = controller/pid.c log.c
