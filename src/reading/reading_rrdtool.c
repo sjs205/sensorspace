@@ -22,57 +22,109 @@
  *
  *****************************************************************************/
 
+#include <stdlib.h>
 #include <time.h>
 #include <rrd.h>
 
-#define RRD_MAX_FILENAME_LEN      1024
-#define RRD_MEASUREMENT_LEN       32
-#define RRD_MAX_SENSORS           32
+#include "reading.h"
 
-struct rrd_file {
-  char f[RRD_MAX_FILENAME_LEN];
-};
+#define RRD_UPDATE_ARG_COUNT      4
+#define RRD_UPDATE_ARG_0          "update"
 
-struct rrdtool {
-  unsigned sensor_id[RRD_MAX_SENSORS];
-  struct rrd_file *file[RRD_MAX_SENSORS];
-  unsigned f_count;
-};
+/*
+ * \brief function to initialise a new RRD file.
+ */
+int rrd_file_init(struct rrdtool *rrd, char *file) {
 
-int add_reading_rrd(struct readings *r, struct rrdtool *rrd) {
-
-  int i;
-  int ret = SS_SUCCESS;
-  char meas[RRD_MEASUREMENT_LEN];
-
-  for (i = 0; i < r->count; i++) {
-    if (r->meas[i]->sensor_id == rrd->sensor_id) {
-      ret = add_measurement_rrd(r->meas[i], rrd);
-
+  if (rrd->f_count + 1 >= RRD_MAX_SENSORS) {
+    if (!(rrd->file[rrd->f_count++] = calloc(1, sizeof(struct rrd_file)))) {
+      log_stderr(LOG_ERROR, "RRDtool: Out of memory");
+      goto free;
     }
+  } else {
+    log_stderr(LOG_ERROR, "RRDtool: Exceded max number of files: %s",
+        RRD_MAX_SENSORS);
+    return SS_OUT_OF_MEM_ERROR;
   }
 
   return SS_SUCCESS;
+
+free:
+  free_rrd_file(rrd->file[--rrd->f_count]);
+  return SS_OUT_OF_MEM_ERROR;
 }
 
 /*
  * \brief function to add a raw measurement to an RR database.
  */
-static int add_measurement_rrd(uint32_t sensor_id, time_t date, char *meas,
-    struct rrd_file *f) {
+static int add_measurement_rrd(struct reading *r, unsigned m_idx,
+    struct rrd_file *file) {
 
   int ret = SS_SUCCESS;
+  char buf[32];
 
-  sprintf(buf, "%lld:%s", (long long) mktime(r->t), r->meas);
+  sprintf(buf, "%lld:%s", (long long) mktime(&r->t), r->meas[m_idx]->meas);
 
-  char *updateparams[] = {
-    "update",
-    f->file,
+  const char *updateparams[RRD_UPDATE_ARG_COUNT] = {
+    RRD_UPDATE_ARG_0,
+    file->name,
     buf,
     NULL
   };
 
-  ret = rrd_update(3, updateparams);
+  ret = rrd_update(3, (char **)updateparams);
+  if (ret) {
+    // print error message
+  }
 
-  return SS_SUCCESS;
+  return ret;
+}
+
+/*
+ * \brief function to add a reading to an RR database.
+ */
+int add_reading_rrd(struct reading *r, struct rrdtool *rrd) {
+
+  int ret = SS_SUCCESS;
+  unsigned i, j;
+
+  for (i = 0; i < r->count; i++) {
+    for (j = 0; j < rrd->f_count; j++) {
+      if (r->meas[i]->sensor_id == rrd->sensor_id[j]) {
+        // is this correct?
+        ret = add_measurement_rrd(r, i, *rrd->file);
+        if (ret) {
+          // print error message
+        }
+      }
+    }
+  }
+
+  return ret;
+}
+
+/*
+ * \brief function to free an rrd_file struct.
+ */
+void free_rrd_file(struct rrd_file *file) {
+
+  if (file)
+    free(file);
+
+  return;
+}
+
+/*
+ * \brief function to free all files in a rrdtool struct.
+ */
+void free_rrd_files(struct rrdtool *rrd) {
+
+  int i;
+  for (i = rrd->f_count; i >= 0; i--) {
+    if (rrd->file[i]) {
+      free_rrd_file(rrd->file[i]);
+    }
+  }
+
+  return;
 }
