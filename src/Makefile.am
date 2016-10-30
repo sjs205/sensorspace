@@ -63,7 +63,7 @@ libreading_a_SOURCES = reading/reading.c reading/reading_ini.c \
 libserial_a_SOURCES = serial/tty_conn.c log.c
 libcontroller_a_SOURCES = controller/pid.c log.c
 
-bin_PROGRAMS = tty_mqtt reading_mqtt pid_mqtt
+bin_PROGRAMS = tty_mqtt reading_mqtt pid_mqtt $(RRDTOOL_BIN)
 
 pid_mqtt_SOURCES = pid_mqtt.c log.c
 pid_mqtt_LDADD = $(AM_LDFLAGS)
@@ -73,3 +73,9 @@ reading_mqtt_LDADD = $(AM_LDFLAGS)
 
 tty_mqtt_SOURCES = tty_mqtt.c log.c
 tty_mqtt_LDADD = $(AM_LDFLAGS)
+
+if RRD_H
+RRDTOOL_BIN = mqtt_rrdtool
+mqtt_rrdtool_SOURCES = mqtt_rrdtool.c log.c
+mqtt_rrdtool_LDADD = $(AM_LDFLAGS)
+endif
