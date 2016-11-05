@@ -62,7 +62,7 @@ int validate_reading(struct reading *r) {
   if (r->t.tm_mon != now->tm_mon && r->t.tm_year != now->tm_year) {
     /* reading either too old or not set */
     log_stderr(LOG_WARN, "Invalid date, setting date to NOW!");
-    memcpy((void *)&r->t, (void *)now, sizeof(struct tm)); 
+    memcpy((void *)&r->t, (void *)now, sizeof(struct tm));
   }
 
   if (r->device_id == 0) {
@@ -156,7 +156,8 @@ int print_reading(struct reading *r) {
       r->t.tm_sec);
   printf("\tMeasurements:\n");
   for (i = 0; i < r->count; i++) {
-    printf("\tSensorID: %d\n", r->meas[i]->sensor_id);
+    printf("\tSensor_id: %d\n", r->meas[i]->sensor_id);
+    printf("\tName: %s\n", r->meas[i]->name);
     printf("\tMeasurement: %s\n", r->meas[i]->meas);
   }
 

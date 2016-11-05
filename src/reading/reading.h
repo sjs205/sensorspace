@@ -107,4 +107,7 @@ int convert_reading_json(struct reading *r, char *buf, size_t *len);
 /* device specific reading conversion functions */
 int convert_cc_dev_reading(struct reading *r, char *buf, size_t len);
 
+/* helper functions */
+int json_get_key_value(const char *buf, const char *key, char *val);
+
 #endif        /* READING__H */
