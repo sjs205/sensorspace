@@ -8,17 +8,18 @@
     },
 
     "sensors" : [
-
     {
       "id" : "2",
       "meas" : "5",
-      "name" : "Outside Temp"
+      "name" : "Outside Temp",
+      "type" : "temp"
     },
 
     {
       "id" : "2",
       "meas" : "21",
-      "name" : "Inside Temp"
+      "name" : "Inside Temp",
+      "type" : "temp"
     }
     ]
 }
