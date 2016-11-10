@@ -95,20 +95,14 @@ int main(int argc, char **argv) {
   size_t len = MAX_MSG_LEN;
   char json[MAX_MSG_LEN] = "\0";
   char clientid[UMQTT_CLIENTID_MAX_LEN] = "\0";
+  time_t t;
+
+  struct reading *r = NULL;
+  struct mqtt_packet *rx_pkt = NULL;
 
   struct rrdtool rrd;
   memset(&rrd, 0, sizeof(struct rrdtool));
-  unsigned rrd_id = 0;
 
-  struct reading *r = NULL;
-  ret = reading_init(&r);
-  if (ret) {
-    return -1;
-  }
-
-  /* set reading date to now */
-  time_t t = time(0);
-  localtime_r(&t, &r->t);
 
   static struct option long_options[] =
   {
@@ -148,7 +142,6 @@ int main(int argc, char **argv) {
               log_stderr(LOG_ERROR, "Failed to initialise rrd file");
               return -1;
             }
-            rrd_id = rrd.f_count - 1;
           } else {
             log_stderr(LOG_ERROR,
                 "The RRD file flag should be followed by a file");
@@ -169,8 +162,10 @@ int main(int argc, char **argv) {
 
         case 's':
           /* set a sensor_id */
-          if (optarg && rrd_id) {
-            rrd.sensor_id[rrd_id] = atoi(optarg);
+          if (optarg) {
+            if (rrd.f_count) {
+              rrd.sensor_id[rrd.f_count - 1] = atoi(optarg);
+            }
           } else {
             log_stderr(LOG_ERROR,
                 "The sensor_id flag should follow an rrd file flag, and"
@@ -261,30 +256,41 @@ int main(int argc, char **argv) {
   }
 
   /* Start listening for packets */
-  struct mqtt_packet *rx_pkt = NULL;
-  if (init_packet(&rx_pkt)) {
-    log_stderr(LOG_ERROR, "Initialising packet");
-    return ret;
-  }
-
   while (1) {
+
     /* packet border */
     log_stdout(LOG_INFO,
         "------------------------------------------------------------");
 
-    ret = conn->receive_method(conn, rx_pkt);
+    ret = init_packet(&rx_pkt);
     if (ret) {
-      log_stderr(LOG_ERROR, "Receiving packet");
-      /******************************** really???? */
+      log_stderr(LOG_ERROR, "Failed to initialie packet");
       break;
     }
 
-    log_stdout(LOG_INFO, "Received packet - Attempting to converting readings");
+    ret = reading_init(&r);
+    if (ret) {
+      log_stderr(LOG_ERROR, "Failed to initialie reading");
+      break;
+    }
+
+    /* set reading date/time to now - fallback */
+    t = time(0);
+    localtime_r(&t, &r->t);
+
+    ret = conn->receive_method(conn, rx_pkt);
+    if (ret) {
+      log_stderr(LOG_ERROR, "Receiving packet");
+      break;
+    }
+
+    log_stdout(LOG_INFO, "Received packet - Attempting to convert to a reading");
 
     /* copy payload data - which should be JSON */
     /* Currently, we assume readings is json, but it could equally be ini? */
     strncpy(json, (const char *)&rx_pkt->payload->data, rx_pkt->pay_len);
-    log_stdout(LOG_INFO, "%s", json);
+    json[rx_pkt->pay_len + 1] = '\0';
+    log_stderr(LOG_DEBUG, "PKT: %s", json);
 
     /* convert reading ready for rrd_update */
     ret = convert_json_reading(r, json, len);
@@ -300,11 +306,8 @@ int main(int argc, char **argv) {
       log_stderr(LOG_ERROR, "Failed to add reading to RR database");
     }
 
-    /* reinitialise reading */
-    log_stderr(LOG_ERROR, "Cleaning up olFailed to add reading to RR database");
     free_reading(r);
-    ret = reading_init(&r);
-    if (ret) break;
+    free_packet(rx_pkt);
 
   }
 
@@ -313,6 +316,7 @@ int main(int argc, char **argv) {
   free_reading(r);
   free_connection(conn);
   free_packet(pkt);
+  free_packet(rx_pkt);
   free_rrd_files(&rrd);
   return ret;
 }

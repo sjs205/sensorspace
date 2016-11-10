@@ -35,8 +35,8 @@
  * \brief function to initialise a new RRD file.
  */
 int rrd_file_init(struct rrdtool *rrd, char *file) {
-  log_stderr(LOG_ERROR, "irrdfile init");
 
+  log_stdout(LOG_INFO, "New RRD database added: %s", file);
   if (rrd->f_count + 1 <= RRD_MAX_SENSORS) {
     if (!(rrd->file[rrd->f_count++] = calloc(1, sizeof(struct rrd_file)))) {
       log_stderr(LOG_ERROR, "RRDtool: Out of memory");
@@ -46,6 +46,13 @@ int rrd_file_init(struct rrdtool *rrd, char *file) {
     log_stderr(LOG_ERROR, "RRDtool: Exceded max number of files: %d",
         RRD_MAX_SENSORS);
     return SS_OUT_OF_MEM_ERROR;
+  }
+
+  /* Copy filename */
+  if (!strncpy(rrd->file[rrd->f_count - 1]->name, file,
+        sizeof(struct rrd_file))) {
+    log_stderr(LOG_ERROR, "RRDtool: Failed to copy rrd file name");
+    return SS_INIT_ERROR;
   }
 
   return SS_SUCCESS;
@@ -66,28 +73,37 @@ static int add_measurement_rrd(struct reading *r, unsigned m_idx,
 
   sprintf(buf, "%lld:%s", (long long) mktime(&r->t), r->meas[m_idx]->meas);
 
-  const char *updateparams[RRD_UPDATE_ARG_COUNT] = {
+  const char *updateparams[] = {
     RRD_UPDATE_ARG_0,
     file->name,
     buf,
     NULL
   };
 
-  log_stderr(LOG_ERROR, "This should be a debug message!!!!\nrrdtool update command:");
-  log_stderr(LOG_ERROR, "[rrdtool] %s, %s, %s, %s", updateparams[0],
-      updateparams[1],
-      updateparams[2],
-      updateparams[3]);
+  log_stderr(LOG_DEBUG, "RRD: Sensor ID: %d, Measurement: %s, File: %s",
+      r->meas[m_idx]->sensor_id, r->meas[m_idx]->meas, file);
+  log_stderr(LOG_DEBUG, "[rrdtool] %s, %s, %s, %s",
+      updateparams[0], updateparams[1], updateparams[2], updateparams[3]);
 
-  ret = rrd_update(3, (char **)updateparams);
+#if 0
+  /* Full debug */
+  rrd_info_t *rrd_inf = rrd_update_v(3, (char **)updateparams);
+
+  /* need to extract return value */
+  rrd_info_print(rrd_inf);
+
+#else
+  ret = rrd_update(3, (char **)&updateparams);
+#endif
   if (ret) {
-    log_stderr(LOG_ERROR, "RRDtool: update failed for RRD:");
-    log_stderr(LOG_ERROR, "Sensor ID: %d, Measurement: %s, File: %s",
-        file, r->meas[m_idx]->meas, r->meas[m_idx]->sensor_id);
+    log_stderr(LOG_ERROR, "rrd_error: %s", rrd_get_error());
+    rrd_clear_error();
     ret = SS_POST_ERROR;
+  } else {
+    log_stdout(LOG_INFO, "Measurement added to RRD: %s", buf);
   }
 
-  return ret;
+        return ret;
 }
 
 /*
@@ -101,10 +117,12 @@ int add_reading_rrd(struct reading *r, struct rrdtool *rrd) {
   for (i = 0; i < r->count; i++) {
     for (j = 0; j < rrd->f_count; j++) {
       if (r->meas[i]->sensor_id == rrd->sensor_id[j]) {
-        // is this correct?
-        ret = add_measurement_rrd(r, i, *rrd->file);
+        log_stdout(LOG_INFO, "Processing measurement from sensor: %d - %s",
+            r->meas[i]->sensor_id, r->meas[i]->name);
+
+        ret = add_measurement_rrd(r, i, rrd->file[j]);
         if (ret) {
-          // print error message
+          log_stderr(LOG_ERROR, "rrdtool message add failed");
         }
       }
     }

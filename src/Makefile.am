@@ -52,9 +52,7 @@ AM_LDFLAGS = libreading.a \
 
 lib_LIBRARIES = libreading.a libserial.a libcontroller.a
 
-if RRD_H
 RRDTOOL = reading/reading_rrdtool.c
-endif
 
 libreading_a_SOURCES = reading/reading.c reading/reading_ini.c \
                         reading/reading_json.c reading/reading_cc_dev.c \
