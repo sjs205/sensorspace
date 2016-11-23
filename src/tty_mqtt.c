@@ -87,6 +87,7 @@ static int print_usage() {
       " -j [--json]              : Embed the reading in JSON format (DEFAULT)\n"
       " -i [--ini]               : Embed the reading in INI format\n"
       "                            NOTE: Not currently supported\n"
+      " -R [--remap] <id>:<to_id>: Remap sensor IDs for received readings\n"
       "\n"
       "TTY Device options:\n"
       " -D [--tty-dev] <tty-dev> : The TTY device to connect to.\n"
@@ -172,12 +173,38 @@ static int process_cc_buffer(char *buf, size_t *len) {
     return SS_CONTINUE;
   }
 
-
   cc_buf_len = 0;
   strncpy((char *)buf, (char *)&cc_buf, cc_buf_len);
   *len = cc_buf_len;
 
   return SS_SUCCESS;
+}
+
+struct sensor_remaps {
+  uint32_t rmap_id[READ_MEAS_COUNT];
+  uint32_t id[READ_MEAS_COUNT];
+  uint8_t count;
+};
+
+static void remap_reading_sensor_ids(struct reading *r,
+    struct sensor_remaps *rmap) {
+  int i, j;
+
+  if (rmap->count && r->count) {
+    for (i = 0; i < r->count; i++) {
+      for (j = 0; j < rmap->count; j++) {
+        if (rmap->id[j] == r->meas[i]->sensor_id) {
+          r->meas[i]->sensor_id = rmap->rmap_id[j];
+          log_stdout(LOG_DEBUG, "remapped sensor_id: %d->%d",
+              rmap->id[j], r->meas[i]->sensor_id);
+
+          break;
+        }
+      }
+    }
+  }
+
+  return;
 }
 
 int main(int argc, char **argv) {
@@ -210,6 +237,11 @@ int main(int argc, char **argv) {
   /* set reading date to now */
   time_t t = time(0);
 
+  /* Reading sensor id remaps */
+  struct sensor_remaps rmaps;
+  rmaps.count = 0;
+  char *rmap_buf[64];
+
   /* tty variables */
   char buf[RX_BUF_LEN];
   size_t buf_len = RX_BUF_LEN;
@@ -232,10 +264,11 @@ int main(int argc, char **argv) {
     {"help",   no_argument,             0, 'h'},
     {"verbose", required_argument,      0, 'v'},
     {"type", required_argument,         0, 'T'},
-    {"device_id", required_argument,     0, 'd'},
-    {"sensor_id", required_argument,     0, 's'},
+    {"device_id", required_argument,    0, 'd'},
+    {"sensor_id", required_argument,    0, 's'},
     {"json", no_argument,               0, 'j'},
     {"ini", no_argument,                0, 'i'},
+    {"remap", required_argument,        0, 'R'},
     {"retain",  no_argument,            0, 'r'},
     {"tty-dev", required_argument,      0, 'D'},
     {"baud", required_argument,         0, 'B'},
@@ -249,8 +282,8 @@ int main(int argc, char **argv) {
   /* get arguments */
   while (1)
   {
-    if ((c = getopt_long(argc, argv, "hv:s:d:T:D:B:jirt:b:p:c:", long_options,
-            &option_index)) != -1) {
+    if ((c = getopt_long(argc, argv, "hv:s:d:T:D:B:jirt:b:p:c:R:",
+            long_options, &option_index)) != -1) {
 
       switch (c) {
         case 'h':
@@ -297,6 +330,24 @@ int main(int argc, char **argv) {
           } else {
             log_stderr(LOG_ERROR,
                 "The device type flag should be followed by a device type");
+            return print_usage();
+          }
+          break;
+
+        case 'R':
+          /* Remap a devices sensor id with another sensor id */
+          if (optarg) {
+            strcpy((char *)rmap_buf, optarg);
+            rmaps.id[rmaps.count] = atoi((char *)rmap_buf);
+            rmaps.rmap_id[rmaps.count] =
+              atoi(strchr((char *)rmap_buf, ':') + 1);
+            log_stdout(LOG_INFO, "Remapping sensor ID: %d to %d",
+                rmaps.id[rmaps.count], rmaps.rmap_id[rmaps.count]);
+
+            rmaps.count++;
+          } else {
+            log_stderr(LOG_ERROR,
+                "The remap flag should be followed by two sensor IDs");
             return print_usage();
           }
           break;
@@ -444,7 +495,8 @@ int main(int argc, char **argv) {
         log_stderr(LOG_ERROR, "Select: %s: %s", tty->path, strerror(errno));
         continue;
       }
-      log_stderr(LOG_ERROR, "Select failed: %s: %s", tty->path, strerror(errno));
+      log_stderr(LOG_ERROR, "Select failed: %s: %s", tty->path,
+          strerror(errno));
       continue;
 
     } else if (!ret) {
@@ -454,6 +506,10 @@ int main(int argc, char **argv) {
 
     /* Determine if any fds are ready */
     if (FD_ISSET(tty->fd, &read_fds)) {
+
+      /* packet border */
+      log_stdout(LOG_INFO,
+          "------------------------------------------------------------");
 
       /* set reading time to now */
       t = time(0);
@@ -470,10 +526,13 @@ int main(int argc, char **argv) {
 
       } else if (buf_len) {
         /* process tty data */
+        log_stdout(LOG_INFO, "Processing received data");
+
         if (CURRENT_COST_DEV == type) {
 
           ret = process_cc_buffer(buf, &buf_len);
           if (ret == SS_CONTINUE) {
+            log_stdout(LOG_INFO, "No data available");
             continue;
           }
 
@@ -485,23 +544,29 @@ int main(int argc, char **argv) {
             continue;
           }
 
+          remap_reading_sensor_ids(r, &rmaps);
+
+          log_stdout(LOG_INFO, "Received new reading:");
+          print_reading(r);
+
         } else if (FLOW_DEV == type) {
           /* not currently supported */
 
         } else if (RAW_DEV == type) {
           /* Simply copy buffer to message payload */
           memcpy((void *)msg, (void *)buf, (buf_len < len ? buf_len : len));
+          log_stdout(LOG_INFO, "RAW payload ready");
         }
 
         if (type != RAW_DEV) {
-          /* apply message processing */
+          /* process message */
+          log_stdout(LOG_INFO, "Processing reading");
           ret = convert_reading_json(r, msg, &len);
           if (ret) {
             log_stderr(LOG_ERROR, "failed to encode reading into JSON");
             continue;
           }
         }
-
       } else if (FD_ISSET(skt->sockfd, &read_fds)) {
         /* process MQTT input */
         /* need to test this to ensure packets are processed upon recipt */
@@ -510,10 +575,10 @@ int main(int argc, char **argv) {
           log_stderr(LOG_ERROR, "failed to process packet input");
           continue;
         }
-
       }
 
-      /* Process output MQTT packet is fall through case. continue to avoid */
+      /* Process output MQTT packet is fall through case */
+
       /* Create publish packet on new data */
       pkt = construct_packet_headers(PUBLISH);
 
@@ -540,7 +605,7 @@ int main(int argc, char **argv) {
 
       finalise_packet(pkt);
 
-      log_stdout(LOG_INFO, "Constructed MQTT PUBLISH packet with:");
+      log_stdout(LOG_INFO, "Constructed MQTT PUBLISH packet:");
       log_stdout(LOG_INFO, "Topic: %s", topic);
       log_stdout(LOG_INFO, "Message: %s", msg);
 
