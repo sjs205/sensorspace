@@ -38,6 +38,8 @@
 #define CC_CHANNEL_CHAR           2
 #define CC_MAX_NO_CHANNELS        10
 
+#define CC_DEV_MAIN_TEMP_ID       (uint32_t)-1
+
 /**
  * \brief Get currentcost XML tag values from input message
  */
@@ -106,6 +108,7 @@ int convert_cc_dev_reading(struct reading *r, char *buf, size_t len) {
       /* remove leading zeros */
       sprintf(m->meas, "%.01f", atof(tmp));
       sprintf(m->name, "Temperature (ºC)");
+      m->sensor_id = CC_DEV_MAIN_TEMP_ID;
       log_stdout(LOG_DEBUG, "New temperature measurement: %s degC", m->meas);
     }
 
