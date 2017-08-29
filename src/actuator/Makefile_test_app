@@ -1,0 +1,29 @@
+CC=gcc
+AR=ar
+CFLAGS = -Wall \
+						-Werror \
+						-Wmissing-declarations \
+						-Wmissing-prototypes \
+						-Wnested-externs \
+				 		-Wpointer-arith \
+						-Wsign-compare \
+						-Wchar-subscripts \
+						-Wstrict-prototypes \
+						-Wwrite-strings \
+						-Wshadow \
+						-Wformat-security \
+						-Wtype-limits \
+            -I. \
+            -L.
+
+all: control.a
+	$(CC) -o control control.c -lcontrol -lbcm2835 $(CFLAGS)
+
+pi_pin_control.o:
+	$(CC) -c -o pi_pin_control.o pi_pin_control.c $(CFLAGS)
+
+control.a: pi_pin_control.o
+	$(AR) rcs libcontrol.a pi_pin_control.o
+
+clean:
+	rm -rf ./*.o ./*.a
