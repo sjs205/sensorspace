@@ -26,4 +26,4 @@ AC_CHECK_HEADERS([string.h sys/ioctl.h sys/socket.h sys/types.h unistd.h])
 AC_CHECK_HEADERS([sys/stat.h termio.h sys/time.h])
 AC_CHECK_HEADERS([assert.h errno.h ])
 
-AC_OUTPUT(Makefile src/Makefile src/reading/Makefile src/serial/Makefile src/controller/Makefile src/actuator/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/reading/Makefile src/serial/Makefile src/controller/Makefile src/actuator/Makefile src/ssdisplay/Makefile)
