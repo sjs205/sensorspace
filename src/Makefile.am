@@ -1,4 +1,4 @@
-SUBDIRS = reading serial uMQTT
+SUBDIRS = reading serial controller uMQTT
 
 if DEBUG
 AM_CFLAGS = -g3 -O0 \
@@ -17,7 +17,8 @@ AM_CFLAGS = -g3 -O0 \
 						-Wtype-limits \
 	          -IuMQTT/src/inc \
 	          -Ireading \
-	          -Iserial
+	          -Iserial \
+	          -Icontroller
 else
 AM_CFLAGS = -Wall \
 						-Werror \
@@ -34,25 +35,31 @@ AM_CFLAGS = -Wall \
 						-Wtype-limits \
 	          -IuMQTT/src/inc \
 	          -Ireading \
-	          -Iserial
+	          -Iserial \
+	          -Icontroller
 endif
 
 
 AM_LDFLAGS = libreading.a \
              libserial.a \
+             libcontroller.a \
              -LuMQTT/lib \
              -luMQTT_client \
              -luMQTT_linux_client \
              -luMQTT_helper \
              -luMQTT
 
-lib_LIBRARIES = libreading.a libserial.a
+lib_LIBRARIES = libreading.a libserial.a libcontroller.a
 
 libreading_a_SOURCES = reading/reading.c reading/reading_ini.c \
                         reading/reading_json.c reading/reading_cc_dev.c log.c
 libserial_a_SOURCES = serial/tty_conn.c log.c
+libcontroller_a_SOURCES = controller/pid.c log.c
 
-bin_PROGRAMS = tty_mqtt reading_mqtt
+bin_PROGRAMS = tty_mqtt reading_mqtt pid_mqtt
+
+pid_mqtt_SOURCES = pid_mqtt.c log.c
+pid_mqtt_LDADD = $(AM_LDFLAGS)
 
 reading_mqtt_SOURCES = reading_mqtt.c log.c
 reading_mqtt_LDADD = $(AM_LDFLAGS)
