@@ -55,17 +55,4 @@
 #define SS_TTY_ERROR               28
 #define SS_CONTINUE                99
 
-/* needed? */
-typedef enum {
-  JSON,
-  INI,
-  RAW,
-  DEV_CONFIG,
-  SENSE_CONFIG,
-  TRN_CFG,
-  READING,
-  READING_CALC,
-  CALC,
-} payload_t;
-
 #endif                    /* SENSORSPACE__H */
