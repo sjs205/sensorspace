@@ -65,7 +65,7 @@ libcontroller_a_SOURCES = controller/pid.c log.c
 libactuator_a_SOURCES = actuator/pi_pin_actuator.c log.c
 libssdisplay_a_SOURCES = ssdisplay/74hc595_7_seg.c log.c
 
-bin_PROGRAMS = tty_mqtt reading_mqtt pid_mqtt actuator_mqtt display_mqtt
+bin_PROGRAMS = tty_mqtt reading_mqtt pid_mqtt actuator_mqtt display_mqtt ds18b20_mqtt
 
 actuator_mqtt_SOURCES = actuator_mqtt.c log.c
 actuator_mqtt_LDADD = $(AM_LDFLAGS)
@@ -81,3 +81,6 @@ tty_mqtt_LDADD = $(AM_LDFLAGS)
 
 display_mqtt_SOURCES = display_mqtt.c log.c
 display_mqtt_LDADD = $(AM_LDFLAGS)
+
+ds18b20_mqtt_SOURCES = ds18b20_mqtt.c log.c
+ds18b20_mqtt_LDADD = $(AM_LDFLAGS)
