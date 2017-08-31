@@ -96,9 +96,12 @@ struct rrd_file {
 /*
  * \brief Struct to hold an rrd database context
  * \param file The rrd file struct
+ * \param sensor_id The sensor_id of a sensor connected to a RRD
+ * \param name Pointer to the name of a sensor connected to a RRD
  */
 struct rrdtool {
   unsigned sensor_id[RRD_MAX_SENSORS];
+  char *name[RRD_MAX_SENSORS];
   struct rrd_file *file[RRD_MAX_SENSORS];
   unsigned f_count;
 };
@@ -118,6 +121,10 @@ int get_sensor_id_measurement(struct reading *r, uint32_t sensor_id,
     char *buf, size_t len);
 int get_sensor_name_measurement(struct reading *r, char *name, char *buf,
     size_t len);
+int get_sensor_id_measurement_idx(struct reading *r, uint32_t sensor_id,
+    uint16_t *idx);
+int get_sensor_name_measurement_idx(struct reading *r, char *name,
+    uint16_t *idx);
 
 /* reading conversion functions */
 int convert_ini_reading(struct reading *r, char *buf, size_t len);
