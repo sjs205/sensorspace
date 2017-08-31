@@ -204,6 +204,46 @@ int get_sensor_name_measurement(struct reading *r, char *name, char *buf,
   return ret;
 }
 
+/**
+ * \brief get measurement index from given sensor_id
+ */
+int get_sensor_id_measurement_idx(struct reading *r, uint32_t sensor_id,
+    uint16_t *idx) {
+  int ret = SS_SUCCESS;
+  int i;
+
+  for (i = 0; i < r->count; i++) {
+    if (r->meas[i]->sensor_id == sensor_id) {
+      *idx = i;
+      ret = SS_SUCCESS;
+      break;
+    } else {
+      ret = SS_NO_MATCH;
+    }
+  }
+  return ret;
+}
+
+/**
+ * \brief get measurement idx from named sensor - assumes unique
+ */
+int get_sensor_name_measurement_idx(struct reading *r, char *name,
+    uint16_t *idx) {
+  int ret = SS_SUCCESS;
+  int i;
+
+  for (i = 0; i < r->count; i++) {
+    if (!strcmp(r->meas[i]->name, name)) {
+      *idx = i;
+      ret = SS_SUCCESS;
+      break;
+    } else {
+      ret = SS_NO_MATCH;
+    }
+  }
+  return ret;
+}
+
 void free_reading(struct reading *r) {
   if (r) {
     free_measurements(r);

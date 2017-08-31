@@ -38,7 +38,12 @@ int rrd_file_init(struct rrdtool *rrd, char *file) {
 
   log_stdout(LOG_INFO, "New RRD database added: %s", file);
   if (rrd->f_count + 1 <= RRD_MAX_SENSORS) {
-    if (!(rrd->file[rrd->f_count++] = calloc(1, sizeof(struct rrd_file)))) {
+    if (!(rrd->file[rrd->f_count] = calloc(1, sizeof(struct rrd_file)))) {
+      log_stderr(LOG_ERROR, "RRDtool: Out of memory");
+      goto free;
+    }
+    if (!(rrd->name[rrd->f_count++] = calloc(READ_NAME_LEN,
+            sizeof(char)))) {
       log_stderr(LOG_ERROR, "RRDtool: Out of memory");
       goto free;
     }
@@ -71,7 +76,16 @@ static int add_measurement_rrd(struct reading *r, unsigned m_idx,
   int ret = SS_SUCCESS;
   char buf[32];
 
-  sprintf(buf, "%lld:%s", (long long) mktime(&r->t), r->meas[m_idx]->meas);
+  /* ToDo:
+   * Currently, we are limited to a single DS per RRD since we can not
+   * easily update a single DS in a multi-DS RRD without setting other
+   * values to zero.
+   * To fix this, we need to update RRD every t interval, and cache
+   * each of the DS values so we can update a multi-DS RRD with one
+   * update instruction.
+   */
+  sprintf(buf, "%lld:%s", (long long) mktime(&r->t),
+      r->meas[m_idx]->meas);
 
   const char *updateparams[] = {
     RRD_UPDATE_ARG_0,
@@ -112,19 +126,32 @@ static int add_measurement_rrd(struct reading *r, unsigned m_idx,
 int add_reading_rrd(struct reading *r, struct rrdtool *rrd) {
 
   int ret = SS_SUCCESS;
-  unsigned i, j;
+  uint16_t idx = 0;
+  unsigned i;
 
-  for (i = 0; i < r->count; i++) {
-    for (j = 0; j < rrd->f_count; j++) {
-      if (r->meas[i]->sensor_id == rrd->sensor_id[j]) {
-        log_stdout(LOG_INFO, "Processing measurement from sensor: %d - %s",
-            r->meas[i]->sensor_id, r->meas[i]->name);
-
-        ret = add_measurement_rrd(r, i, rrd->file[j]);
-        if (ret) {
-          log_stderr(LOG_ERROR, "rrdtool message add failed");
-        }
+  for (i = 0; i < rrd->f_count; i++) {
+    /* check sensor_id first */
+    if (rrd->sensor_id[i]) {
+      ret = get_sensor_id_measurement_idx(r, rrd->sensor_id[i], &idx);
+      if (!ret) {
+        /* We have sucessfully found the measurement, move to next DS */
+        add_measurement_rrd(r, idx, rrd->file[i]);
+        continue;
       }
+    }
+    if (rrd->name[i]) {
+      ret = get_sensor_name_measurement_idx(r, (char *)rrd->name[i], &idx);
+      if (!ret) {
+        /* We have sucessfully found the measurement, move to next DS */
+        add_measurement_rrd(r, idx, rrd->file[i]);
+        continue;
+      }
+    }
+
+    if (ret == SS_NO_MATCH) {
+      ret = SS_SUCCESS;
+    } else if (ret) {
+      return ret;
     }
   }
 
@@ -151,6 +178,9 @@ void free_rrd_files(struct rrdtool *rrd) {
   for (i = rrd->f_count; i >= 0; i--) {
     if (rrd->file[i]) {
       free_rrd_file(rrd->file[i]);
+    }
+    if (rrd->name[i]) {
+      free(rrd->name[i]);
     }
   }
 

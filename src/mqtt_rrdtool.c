@@ -41,6 +41,7 @@
 #define MQTT_DEFAULT_TOPIC    "sensorspace/reading"
 
 #define MAX_TOPIC_LEN 1024
+#define MAX_NAME_LEN 128
 #define MAX_MSG_LEN 2048
 
 static int print_usage(void);
@@ -62,6 +63,7 @@ static int print_usage() {
       " -r [--rrd_file] <file>   : RRD file to update, can be used multiple\n"
       "                             times.\n"
       " -s [--sensor-id] <id>    : The sensor_id of the sensor to update.\n"
+      " -n [--name] <name>       : The name of the sensor to update.\n"
       "\n"
       "Broker options:\n"
       " -b [--broker] <broker-IP>: Change the default broker IP\n"
@@ -111,6 +113,7 @@ int main(int argc, char **argv) {
     {"verbose", required_argument,      0, 'v'},
     {"rrd_file", required_argument,     0, 'r'},
     {"sensor-id", required_argument,    0, 's'},
+    {"name", required_argument,         0, 'n'},
     {"broker", required_argument,       0, 'b'},
     {"port", required_argument,         0, 'p'},
     {"clientid", required_argument,     0, 'c'},
@@ -121,7 +124,7 @@ int main(int argc, char **argv) {
   /* get arguments */
   while (1)
   {
-    if ((c = getopt_long(argc, argv, "hv:s:t:r:b:p:c:", long_options,
+    if ((c = getopt_long(argc, argv, "hv:s:n:t:r:b:p:c:", long_options,
             &option_index)) != -1) {
 
       switch (c) {
@@ -170,6 +173,18 @@ int main(int argc, char **argv) {
             log_stderr(LOG_ERROR,
                 "The sensor_id flag should follow an rrd file flag, and"
                 " should be followed by a sensor_id");
+            return print_usage();
+          }
+          break;
+
+        case 'n':
+          /* set a name */
+          if (optarg && rrd.f_count) {
+            strncpy(rrd.name[rrd.f_count - 1], optarg, READ_NAME_LEN);
+          } else {
+            log_stderr(LOG_ERROR,
+                "The sensor name flag should follow an rrd file flag, and"
+                " should be followed by a sensor name");
             return print_usage();
           }
           break;
