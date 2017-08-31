@@ -164,6 +164,46 @@ int print_reading(struct reading *r) {
   return SS_SUCCESS;
 }
 
+/**
+ * \brief get measurement from given sensor_id
+ */
+int get_sensor_id_measurement(struct reading *r, uint32_t sensor_id,
+    char *buf, size_t len) {
+  int ret = SS_SUCCESS;
+  int i;
+
+  for (i = 0; i < r->count; i++) {
+    if (r->meas[i]->sensor_id == sensor_id) {
+      strncpy(buf, r->meas[i]->meas, len);
+      ret = SS_SUCCESS;
+      break;
+    } else {
+      ret = SS_NO_MATCH;
+    }
+  }
+  return ret;
+}
+
+/**
+ * \brief get measurement from named sensor - assumes unique
+ */
+int get_sensor_name_measurement(struct reading *r, char *name, char *buf,
+    size_t len) {
+  int ret = SS_SUCCESS;
+  int i;
+
+  for (i = 0; i < r->count; i++) {
+    if (!strcmp(r->meas[i]->name, name)) {
+      strncpy(buf, r->meas[i]->meas, len);
+      ret = SS_SUCCESS;
+      break;
+    } else {
+      ret = SS_NO_MATCH;
+    }
+  }
+  return ret;
+}
+
 void free_reading(struct reading *r) {
   if (r) {
     free_measurements(r);

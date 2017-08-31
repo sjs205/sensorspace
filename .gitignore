@@ -2,6 +2,7 @@ tags
 *.o
 *.a
 *.so
+*.out
 COPYING
 INSTALL
 *Makefile
@@ -12,6 +13,8 @@ INSTALL
 *deps*
 src/mqtt_rrdtool
 src/reading_mqtt
+src/pid_mqtt
+src/tty_mqtt
 src/reading/reading_json_.c
 src/reading/reading_rrdtool.c_bu
 src/reading_rrdtool.c

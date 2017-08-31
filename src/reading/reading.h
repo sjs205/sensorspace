@@ -114,6 +114,10 @@ int print_reading(struct reading *r);
 int validate_reading(struct reading *r);
 int convert_tm_db_date(struct tm *date, char *buf);
 int convert_db_date_to_tm(const char *time, struct tm *t);
+int get_sensor_id_measurement(struct reading *r, uint32_t sensor_id,
+    char *buf, size_t len);
+int get_sensor_name_measurement(struct reading *r, char *name, char *buf,
+    size_t len);
 
 /* reading conversion functions */
 int convert_ini_reading(struct reading *r, char *buf, size_t len);

@@ -56,9 +56,25 @@ int convert_reading_json(struct reading *r, char *buf, size_t *len) {
   if (l < 0) goto error;
 
   /* Set device_id */
-  if (r->device_id) {
-    l += snprintf(buf + l, *len - l, "\"device\":{\"id\":\"%d\"},",
-        r->device_id);
+  if (r->device_id || r->name[0]) {
+    l += snprintf(buf + l, *len - l, "\"device\":{");
+
+    if (r->device_id) {
+      l += snprintf(buf + l, *len - l, "\"id\":\"%d\"", r->device_id);
+    }
+
+    if (r->device_id && r->name[0]) {
+      /* add comma */
+      *(buf + l++) = ',';
+    }
+
+    if (r->name[0]) {
+      l += snprintf(buf + l, *len - l, "\"name\":\"%s\"", r->name);
+    }
+
+    /* close */
+    l += sprintf(buf + l, "},");
+
     if (l < 0) goto error;
   }
 
@@ -84,14 +100,14 @@ int convert_reading_json(struct reading *r, char *buf, size_t *len) {
         if (l < 0) goto error;
       }
 
-      if (r->meas[i]->meas) {
-        l += snprintf(buf + l, *len - l, "\"meas\":\"%s\"", r->meas[i]->meas);
+      if (r->meas[i]->name[0]) {
+        l += snprintf(buf + l, *len - l, "\"name\":\"%s\"", r->meas[i]->name);
         if (l < 0) goto error;
       }
 
-      if (r->meas[i]->name[0]) {
-        /* assumes measurment always present, hence comma */
-        l += snprintf(buf + l, *len - l, ",\"name\":\"%s\"", r->meas[i]->name);
+      if (r->meas[i]->meas) {
+        /* assumes name always present, hence comma */
+        l += snprintf(buf + l, *len - l, ",\"meas\":\"%s\"", r->meas[i]->meas);
         if (l < 0) goto error;
       }
 

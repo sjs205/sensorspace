@@ -28,4 +28,4 @@ AC_CHECK_HEADERS([assert.h errno.h ], break)
 AC_CHECK_HEADER([rrd.h], [rrdtool=true])
 AM_CONDITIONAL(RRD_H, test x"$rrdtool" = x"true")
 
-AC_OUTPUT(Makefile src/Makefile src/reading/Makefile src/serial/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/reading/Makefile src/serial/Makefile src/controller/Makefile)
