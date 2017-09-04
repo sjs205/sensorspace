@@ -72,7 +72,7 @@ static int print_usage() {
       " -p [--port] <port>       : Change the default port. Default: 1883\n"
       " -c [--clientid] <id>     : Change the default clientid\n"
       " -t [--topic] <topic>     : Topic, from which, the readings should\n"
-      "                             arrive on.\n"
+      "                             arrive on. Can be used multiple times\n"
       "\n"
       "\nDebug options:\n"
       " -v [--verbose] <LEVEL>   : set verbose level to LEVEL\n"
@@ -90,8 +90,8 @@ static int print_usage() {
 int main(int argc, char **argv) {
 
   int ret;
+  int i;
   int c, option_index = 0;
-  char topic[MAX_TOPIC_LEN] = MQTT_DEFAULT_TOPIC;
   char broker_ip[16] = MQTT_BROKER_IP;
   int broker_port = MQTT_BROKER_PORT;
   size_t len = MAX_MSG_LEN;
@@ -102,9 +102,20 @@ int main(int argc, char **argv) {
   struct reading *r = NULL;
   struct mqtt_packet *rx_pkt = NULL;
 
+  /* Topic variables */
+  char *topic[16] = { 0 };
+  uint8_t topic_idx = 0;
+
   struct rrdtool rrd;
   memset(&rrd, 0, sizeof(struct rrdtool));
 
+  topic[topic_idx] = calloc(MAX_TOPIC_LEN, sizeof(char));
+  if (!topic[topic_idx]) {
+    log_stderr(LOG_ERROR, "Failed to allocate memory for topics");
+    return -1;
+  }
+
+  strncpy(topic[topic_idx], MQTT_DEFAULT_TOPIC, MAX_TOPIC_LEN);
 
   static struct option long_options[] =
   {
@@ -155,7 +166,15 @@ int main(int argc, char **argv) {
         case 't':
           /* Set topic */
           if (optarg) {
-            strcpy(topic, optarg);
+            if (topic_idx) {
+              topic[topic_idx] = calloc(MAX_TOPIC_LEN, sizeof(char));
+              if (!topic[topic_idx]) {
+                log_stderr(LOG_ERROR,
+                    "Failed to allocate memory for topic");
+                return -1;
+              }
+            }
+            strcpy(topic[topic_idx++], optarg);
           } else {
             log_stderr(LOG_ERROR,
                 "The topic flag should be followed by a topic");
@@ -260,14 +279,16 @@ int main(int argc, char **argv) {
 
 
   log_stdout(LOG_INFO, "Subscribing to the following topic:");
-  log_stdout(LOG_INFO, "%s", topic);
 
-  /* Find length of topic and subscribe */
-  const char *end = strchr(topic, '\0');
-  if (!end || (ret = broker_subscribe(conn, topic, end - topic))) {
-
-    log_stderr(LOG_ERROR, "Subscribing to topic.");
-    return ret;
+  for (i = 0; i < topic_idx; i++) {
+    log_stdout(LOG_INFO, "%s", topic[i]);
+    /* Find length of topic and subscribe */
+    const char *end = strchr(topic[i], '\0');
+    if (!end || (ret = broker_subscribe(conn, (char *)topic[i],
+            end - topic[i]))) {
+      log_stderr(LOG_ERROR, "Subscribing to topic %s.", topic[i]);
+      return ret;
+    }
   }
 
   /* Start listening for packets */
@@ -330,6 +351,9 @@ int main(int argc, char **argv) {
   broker_disconnect(conn);
   free_reading(r);
   free_connection(conn);
+  for (i = 0; i < topic_idx; i++) {
+    free(topic[i]);
+  }
   free_packet(pkt);
   free_packet(rx_pkt);
   free_rrd_files(&rrd);
