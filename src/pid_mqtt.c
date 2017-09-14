@@ -64,10 +64,9 @@ int convert_pid_reading(struct pid_ctrl *p, struct reading *r);
 static int print_usage() {
 
   fprintf(stderr,
-      "reading_mqtt is an application that connects to an MQTT broker and \n"
-      "sends a reading in either raw, ini or json format as a publish packet\n"
-      "before disconnecting\n"
-      "Usage: reading_mqtt options] -d <id> -m <measurement> -s <id>;'\n"
+      "pid_mqtt is an application that provides controller functionality\n"
+      "on an MQTT network by allowing reading variables to be controlled.\n"
+      "Usage: pid_mqtt [options]\n\n"
       "General options:\n"
       " -h [--help]              : Displays this help and exits\n"
       "\n"
@@ -75,7 +74,7 @@ static int print_usage() {
       " -t [--topic] <topic>     : Change the default topic. \n"
       "                            Default: \n"
       "                            'sensorspace/reading/[location]/'\n"
-      "                             [device-id]/[device-name]"
+      "                             [device-id]/[device-name]\n"
       " -r [--retain]            : Set the retain flag\n"
       "\n"
       "Broker options:\n"

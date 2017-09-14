@@ -52,7 +52,7 @@ static int print_usage() {
       "reading_mqtt is an application that connects to an MQTT broker and \n"
       "sends a reading in either raw, ini or json format as a publish packet\n"
       "before disconnecting\n"
-      "Usage: reading_mqtt options] -d <id> -m <measurement> -s <id>;'\n"
+      "Usage: reading_mqtt [options];'\n"
       "General options:\n"
       " -h [--help]              : Displays this help and exits\n"
       "\n"
