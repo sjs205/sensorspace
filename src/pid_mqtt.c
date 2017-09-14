@@ -346,6 +346,22 @@ int main(int argc, char **argv) {
   /* PID variables */
   struct pid_ctrl pid = { 0 };
 
+  /* Set PID default values */
+  if (!pid.ie_min)
+    pid.ie_min = -2.0;
+  if (!pid.ie_max)
+    pid.ie_max = 2.0;
+
+  if (!pid.down_on)
+    pid.down_on = -1.0;
+  if (!pid.up_on)
+    pid.up_on = 1.0;
+
+  if (!pid.idle_ulimit)
+    pid.idle_ulimit = 1.0;
+  if (!pid.idle_llimit)
+    pid.idle_llimit = -1.0;
+
   /* reading variables */
 
   static struct option long_options[] =
@@ -607,22 +623,6 @@ int main(int argc, char **argv) {
       break;
     }
   }
-
-  /* Set PID default values */
-  if (!pid.ie_min)
-    pid.ie_min = -2.0;
-  if (!pid.ie_max)
-    pid.ie_max = 2.0;
-
-  if (!pid.down_on)
-    pid.down_on = -1.0;
-  if (!pid.up_on)
-    pid.up_on = 1.0;
-
-  if (!pid.idle_ulimit)
-    pid.idle_ulimit = 1.0;
-  if (!pid.idle_llimit)
-    pid.idle_llimit = -1.0;
 
   if (test_file[0]) {
     /* enter test mode */
