@@ -165,14 +165,14 @@ int convert_pid_reading(struct pid_ctrl *p, struct reading *r) {
     return ret;
   }
   sprintf(r->meas[r->count - 1]->name, "PV_up");
-  sprintf(r->meas[r->count - 1]->meas, "%s", p->pv_up ? "true" : "false");
+  sprintf(r->meas[r->count - 1]->meas, "%s", p->pv_up ? "1" : "0");
 
   ret = measurement_init(r);
   if (ret) {
     return ret;
   }
   sprintf(r->meas[r->count - 1]->name, "PV_down");
-  sprintf(r->meas[r->count - 1]->meas, "%s", p->pv_down ? "true" : "false");
+  sprintf(r->meas[r->count - 1]->meas, "%s", p->pv_down ? "1" : "0");
   return 0;
 }
 
