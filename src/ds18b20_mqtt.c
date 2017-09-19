@@ -57,6 +57,9 @@
 #define W1_CRC_FAIL_STR     "NO"
 #define W1_CRC_SUCCESS_STR  "YES"
 
+/* default w1_device_dir */
+char w1_device_dir[255] = W1_DEVICE_DIR;
+
 struct ds18b20_measurement {
   char sensor[DS18B20_ID_LEN];
   struct measurement meas;
@@ -97,6 +100,9 @@ static int print_usage() {
       " -S [--seconds] <S>       : Number of secsonds between readings\n"
       "                            Default is perform a single reading then\n"
       "                            exit.\n"
+      " -D [--directory] <dir>   : Location of the w1_therm device files.\n"
+      "                            Enables testing on non w1_therm based\n"
+      "                            platform. default is " W1_DEVICE_DIR "\n"
       "\n"
       "Publish options:\n"
       " -l [--location] <loc>    : Add a location topic. \n"
@@ -138,7 +144,7 @@ int ds18b20_reading(struct reading *r, struct ds18b20_measurement *ds_meas) {
   char buf[128] = "\0";
   char *temp_str = NULL;
 
-  d = opendir(W1_DEVICE_DIR);
+  d = opendir(w1_device_dir);
   if (d)
   {
     while ((dir = readdir(d)) != NULL)
@@ -155,16 +161,24 @@ int ds18b20_reading(struct reading *r, struct ds18b20_measurement *ds_meas) {
         log_stdout(LOG_INFO, "DS18B20 Found: %s", dir->d_name);
 
         /* Process sensor data */
-        sprintf(filename, "%s/%s/%s", W1_DEVICE_DIR, dir->d_name,
+        sprintf(filename, "%s/%s/%s", w1_device_dir, dir->d_name,
             W1_READING_FILE);
-        FILE *file = fopen(filename, "r");
 
-        if ((fread(buf, sizeof(uint8_t), sizeof(buf), file) == 0)) {
-          if (ferror(file)) {
+        FILE *file = fopen(filename, "r");
+        if (!file) {
+          log_stderr(LOG_ERROR, "Failed to open temperature file %s",
+              filename);
+          continue;
+        }
+
+        if ((fread(buf, sizeof(uint8_t), sizeof(buf), file) == 0)
+          && !ferror(file)) {
             log_stderr(LOG_ERROR, "Failed to read temperature file %s",
                 filename);
-          }
+            fclose(file);
+            continue;
         }
+        fclose(file);
 
         if (strstr(buf, W1_CRC_SUCCESS_STR) &&
             strstr(buf, W1_TEMP_DELIM)) {
@@ -205,6 +219,8 @@ int main(int argc, char **argv) {
   int ret;
   int i;
   int c, option_index = 0;
+  struct broker_conn *conn;
+  struct mqtt_packet *pkt = NULL;
   char topic[MAX_TOPIC_LEN] = MQTT_DEFAULT_TOPIC;
   char broker_ip[16] = MQTT_BROKER_IP;
   int broker_port = MQTT_BROKER_PORT;
@@ -239,6 +255,7 @@ int main(int argc, char **argv) {
     {"json", no_argument,               0, 'j'},
     {"ini", no_argument,                0, 'i'},
     {"retain",  no_argument,            0, 'r'},
+    {"directory", required_argument,    0, 'D'},
     {"verbose", required_argument,      0, 'v'},
     {"location", required_argument,     0, 'l'},
     {"topic", required_argument,        0, 't'},
@@ -252,7 +269,7 @@ int main(int argc, char **argv) {
   /* get arguments */
   while (1)
   {
-    if ((c = getopt_long(argc, argv, "hv:s:I:n:N:d:jirt:l:b:p:c:S:",
+    if ((c = getopt_long(argc, argv, "hv:s:I:n:N:d:jirt:l:b:p:c:S:D:",
             long_options, &option_index)) != -1) {
 
       switch (c) {
@@ -361,6 +378,17 @@ int main(int argc, char **argv) {
           }
           break;
 
+        case 'D':
+          /* Set w1_therm sysfs dir */
+          if (optarg) {
+            strcpy(w1_device_dir, optarg);
+          } else {
+            log_stderr(LOG_ERROR,
+                "The directory flag should be followed by a file directory");
+            return print_usage();
+          }
+          break;
+
         case 'b':
           /* change the default broker ip */
           if (optarg) {
@@ -411,8 +439,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  struct broker_conn *conn;
-
   log_stdout(LOG_INFO, "Initialising socket connection");
 
   init_linux_socket_connection(&conn, broker_ip, sizeof(broker_ip),
@@ -439,7 +465,12 @@ int main(int argc, char **argv) {
         "Connected to broker:\nip: %s port: %d", skt->ip, skt->port);
   }
 
-  struct mqtt_packet *pkt = construct_packet_headers(PUBLISH);
+  pkt = construct_packet_headers(PUBLISH);
+  if (!pkt) {
+    log_stderr(LOG_ERROR, "Constructing PUBLISH packet");
+    ret = UMQTT_ERROR;
+    goto free;
+  }
 
   /* build topic string */
   if (!topic_set) {
