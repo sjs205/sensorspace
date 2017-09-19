@@ -31,6 +31,10 @@ AM_CFLAGS = -Wall \
             -I..
 endif
 
+AM_LDFLAGS = @PLATFORM_LIBS@
+
+AM_CPPFLAGS = @PLATFORM_CPPFLAGS@
+
 lib_LIBRARIES = libactuator.a
 
 libactuator_a_SOURCES = pi_pin_actuator.c

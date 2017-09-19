@@ -49,12 +49,15 @@ AM_LDFLAGS = libreading.a \
              libcontroller.a \
              libactuator.a \
              libssdisplay.a \
-             -lbcm2835 \
              -LuMQTT/lib \
              -luMQTT_client \
              -luMQTT_linux_client \
              -luMQTT_helper \
              -luMQTT
+
+AM_LDFLAGS += @PLATFORM_LIBS@
+
+AM_CPPFLAGS = @PLATFORM_CPPFLAGS@
 
 lib_LIBRARIES = libreading.a libserial.a libcontroller.a libactuator.a libssdisplay.a
 

@@ -12,6 +12,28 @@ AM_INIT_AUTOMAKE
 AC_PROG_RANLIB
 AM_PROG_CC_C_O
 
+# Build platform
+AC_CANONICAL_HOST
+PLATFORM_CPPFLAGS=""
+AS_CASE([$host_os],
+  [linux*],
+  [AS_CASE([$host_cpu],
+    [armv6l],
+      [
+      AC_MSG_NOTICE("-DRASPBERRYPI")
+      PLATFORM_CPPFLAGS="-DRASPBERRYPI"
+      PLATFORM_LIBS="-lbcm2835"
+      ]
+    [x86_64],
+      [
+      PLATFORM_CPPFLAGS="-DX86_64"
+      AC_MSG_NOTICE("-DX86_64")
+      ]
+  )]
+)
+AC_SUBST([PLATFORM_CPPFLAGS])
+AC_SUBST([PLATFORM_LIBS])
+
 # Debug enabled?
 AC_ARG_ENABLE(debug,
   AS_HELP_STRING([--enable-debug], [enable debugging, default: no]),

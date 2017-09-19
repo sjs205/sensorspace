@@ -159,7 +159,12 @@ int ds18b20_reading(struct reading *r, struct ds18b20_measurement *ds_meas) {
             W1_READING_FILE);
         FILE *file = fopen(filename, "r");
 
-        fread(buf, sizeof(uint8_t), sizeof(buf), file);
+        if ((fread(buf, sizeof(uint8_t), sizeof(buf), file) == 0)) {
+          if (ferror(file)) {
+            log_stderr(LOG_ERROR, "Failed to read temperature file %s",
+                filename);
+          }
+        }
 
         if (strstr(buf, W1_CRC_SUCCESS_STR) &&
             strstr(buf, W1_TEMP_DELIM)) {

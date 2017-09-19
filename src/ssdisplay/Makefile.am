@@ -31,6 +31,10 @@ AM_CFLAGS = -Wall \
             -I..
 endif
 
+AM_LDFLAGS = @PLATFORM_LIBS@
+
+AM_CPPFLAGS = @PLATFORM_CPPFLAGS@
+
 lib_LIBRARIES = libssdisplay.a
 
 libssdisplay_a_SOURCES = 74hc595_7_seg.c

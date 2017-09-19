@@ -29,26 +29,37 @@
 #include <sys/mman.h>
 #include <time.h>
 
+#ifdef RASPBERRYPI
 #include <bcm2835.h>
+#endif
 
+#include "log.h"
 #include "actuator.h"
 
 void set_actuator_state(struct actuator *a) {
 
   a->last_set = time(NULL);
+#ifdef RASPBERRYPI
   bcm2835_gpio_write(a->pin, a->invert ? !a->state : a->state);
-
+#else
+  log_stderr(LOG_WARN, "STUB ACTUATOR: setting state to %d",
+      a->invert ? !a->state : a->state);
+#endif
   return;
 }
 
 int init_actuator(struct actuator *a, bool init_state) {
 
+#ifdef RASPBERRYPI
   if (!bcm2835_init()) {
     return 1;
   }
 
   /* set initial states */
   bcm2835_gpio_fsel(a->pin, BCM2835_GPIO_FSEL_OUTP);
+#else
+  log_stderr(LOG_WARN, "STUB ACTUATOR: Initialising actuator");
+#endif
   a->state = init_state;
   set_actuator_state(a);
 

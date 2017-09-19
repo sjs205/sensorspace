@@ -4,11 +4,18 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <bcm2835.h>
 
+#ifdef RASPBERRYPI
+#include <bcm2835.h>
+#endif
+
+#include "log.h"
 #include "ssdisplay.h"
 
+
+
 static void write_display_val(struct display *d, uint16_t val, bool cascaded) {
+#ifdef RASPBERRYPI
   uint8_t i;
 
   bcm2835_gpio_write(d->rclk_pin, LOW);
@@ -28,10 +35,10 @@ static void write_display_val(struct display *d, uint16_t val, bool cascaded) {
   if (!cascaded) {
     bcm2835_gpio_write(d->rclk_pin, HIGH);
   }
+#endif
 
   return;
 }
-//#define DEBUG 1
 
 void write_display(struct display *d) {
   uint8_t i, j;
@@ -44,8 +51,8 @@ void write_display(struct display *d) {
         /* ensure cascade bit clear on last display */
         write_display_val(d_cas, d_cas->digit[i], (bool)(d_cas->cascaded));
         d_cas = d_cas->cascaded;
-#ifdef DEBUG
-        printf("display=%d digit=%d\n", j, i);
+#if 0
+        log_stderr(DEBUG, "display=%d digit=%d", j, i);
 #endif
       }
       /* reset point to first display */
@@ -208,6 +215,7 @@ void set_display_pins(struct display *d, uint8_t sclk, uint8_t rclk, uint8_t dio
 
 int display_init(struct display *d) {
 
+#ifdef RASPBERRYPI
   if (!bcm2835_init()) {
     return 1;
   }
@@ -219,6 +227,9 @@ int display_init(struct display *d) {
   bcm2835_gpio_write(d->sclk_pin, LOW);
   bcm2835_gpio_write(d->rclk_pin, LOW);
   bcm2835_gpio_write(d->dio_pin,  LOW);
+#else
+  log_stderr(LOG_WARN, "STUB 7-SEG DISPLAY: Initialising display");
+#endif
 
   /* fork display process */
   if (fork() == 0) {

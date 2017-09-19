@@ -37,12 +37,19 @@
 #include "reading/reading.h"
 #include "log.h"
 
+#ifdef RASPBERRYPI
 #include <bcm2835.h>
-#include "ssdisplay.h"
 
 #define PIN_SCLK    RPI_V2_GPIO_P1_36
 #define PIN_RCLK    RPI_V2_GPIO_P1_38
 #define PIN_DIO     RPI_V2_GPIO_P1_37
+#else
+#define PIN_SCLK    1
+#define PIN_RCLK    1
+#define PIN_DIO     1
+#endif
+
+#include "ssdisplay.h"
 
 #define MAX_TOPIC_LEN         1024
 #define MAX_MSG_LEN           1024
